@@ -1,0 +1,161 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: mouryamp
+app: miniproject-backend
+service: miniProject-backend-service
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'ap-south-1'}
+  httpApi:
+    cors:
+      allowedOrigins:
+        - http://localhost:5173
+      allowedHeaders:
+        - Content-Type
+        - Authorization
+        - X-Requested-With
+      allowedMethods:
+        - GET
+        - POST
+        - PATCH
+        - PUT
+        - DELETE
+        - OPTIONS
+      allowCredentials: false
+      maxAge: 600
+  iam:
+    role:
+      statements:
+        - Effect: 'Allow'
+          Action:
+            - 's3:PutObject'
+            - 's3:GetObject'
+            - 's3:DeleteObject'
+          Resource: 'arn:aws:s3:::${env:S3_BUCKET}/*'
+        - Authorization
+        - X-Requested-With
+      allowedMethods:
+        - GET
+        - POST
+        - PATCH
+        - PUT
+        - DELETE
+        - OPTIONS
+      allowCredentials: false
+      maxAge: 600
+  environment:
+    NODE_ENV: ${self:provider.stage}
+    DATABASE_URL: ${env:DATABASE_URL, ''}
+    REDIS_URL: ${env:REDIS_URL, ''}
+    S3_BUCKET: ${env:S3_BUCKET, ''}
+    JWT_ACCESS_SECRET: ${env:JWT_ACCESS_SECRET, ''}
+    JWT_REFRESH_SECRET: ${env:JWT_REFRESH_SECRET, ''}
+    ML_EMBEDDING_URL: ${env:ML_EMBEDDING_URL, ''}
+
+functions:
+  # Auth
+  authRegister:
+    handler: src/handlers/auth/register.handler
+    events:
+      - httpApi:
+          path: /auth/register
+          method: post
+  authLogin:
+    handler: src/handlers/auth/login.handler
+    events:
+      - httpApi:
+          path: /auth/login
+          method: post
+  authRefresh:
+    handler: src/handlers/auth/refresh.handler
+    events:
+      - httpApi:
+          path: /auth/refresh
+          method: post
+  authGuest:
+    handler: src/handlers/auth/guest.handler
+    events:
+      - httpApi:
+          path: /auth/guest
+          method: post
+
+  # Events (organizer)
+  eventsCreate:
+    handler: src/handlers/events/create.handler
+    events:
+      - httpApi:
+          path: /events
+          method: post
+  eventsList:
+    handler: src/handlers/events/list.handler
+    events:
+      - httpApi:
+          path: /events
+          method: get
+  eventsGet:
+    handler: src/handlers/events/get.handler
+    events:
+      - httpApi:
+          path: /events/{eventId}
+          method: get
+  eventsUpdate:
+    handler: src/handlers/events/update.handler
+    events:
+      - httpApi:
+          path: /events/{eventId}
+          method: patch
+
+  # Join (guest / attendee)
+  eventsJoin:
+    handler: src/handlers/events/join.handler
+    events:
+      - httpApi:
+          path: /events/join
+          method: post
+
+  # Photos (organizer)
+  photosPresign:
+    handler: src/handlers/photos/presign.handler
+    events:
+      - httpApi:
+          path: /events/{eventId}/photos/presign
+          method: post
+  photosConfirm:
+    handler: src/handlers/photos/confirm.handler
+    events:
+      - httpApi:
+          path: /events/{eventId}/photos/confirm
+          method: post
+  photosList:
+    handler: src/handlers/photos/list.handler
+    events:
+      - httpApi:
+          path: /events/{eventId}/photos
+          method: get
+
+  # Photo download (attendee)
+  photosDownload:
+    handler: src/handlers/photos/download.handler
+    events:
+      - httpApi:
+          path: /events/{eventId}/photos/{photoId}/download
+          method: get
+
+  # Search (attendee)
+  searchFaces:
+    handler: src/handlers/search/search.handler
+    timeout: 29
+    events:
+      - httpApi:
+          path: /events/{eventId}/search
+          method: post
+
+plugins:
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 3000
+    noPrependStageInUrl: true

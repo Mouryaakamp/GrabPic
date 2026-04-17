@@ -1,0 +1,6 @@
+export BASE="http://localhost:3000"
+
+export TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0ZTg4ZjkwYy05N2E0LTRkMTktYWFjMy0zNGUzNTk5NDkwZjkiLCJyb2xlIjoib3JnYW5pemVyIiwiaWF0IjoxNzc1MjQxODk5LCJleHAiOjE3NzUyNDI3OTl9.bpdMmtbS-H9i0Fas0JlOrC5AwfvuO7_mKuQVx1P6BV8"
+
+export EVENT_ID="6e279b09-e761-400d-9f7b-0ec8bad91a13"
+

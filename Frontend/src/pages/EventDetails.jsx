@@ -7,6 +7,38 @@ import { ArrowLeft, UploadCloud, RefreshCw, Save, ImageIcon, Trash } from 'lucid
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
+function EventPhoto({ photo, eventId, token }) {
+  const [src, setSrc] = useState(null);
+
+  useEffect(() => {
+    fetch(`${baseUrl}/events/${eventId}/photos/${photo.id}/download`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.data?.url) setSrc(data.data.url);
+    })
+    .catch(console.error);
+  }, [eventId, photo.id, token]);
+
+  if (!src) {
+    return (
+      <div className="w-full h-full bg-muted/50 flex items-center justify-center animate-pulse">
+        <ImageIcon className="w-6 h-6 text-muted-foreground/30 mb-2" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={photo.storage_key.split('/').pop()}
+      className="w-full h-full object-cover animate-fade-in"
+      onError={(e) => e.target.style.display = 'none'}
+    />
+  );
+}
+
 export default function EventDetails() {
   const { id } = useParams();
   const [event, setEvent] = useState(null);
@@ -275,12 +307,7 @@ export default function EventDetails() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {photos.map(photo => (
                 <div key={photo.id} className="relative aspect-square rounded-xl overflow-hidden bg-muted group border border-border">
-                  <img
-                    src={`${baseUrl}/events/${id}/photos/${photo.id}/download`}
-                    alt={photo.storage_key.split('/').pop()}
-                    className="w-full h-full object-cover"
-                    onError={(e) => e.target.style.display = 'none'}
-                  />
+                  <EventPhoto photo={photo} eventId={id} token={token} />
                   <div className="absolute top-2 right-2 bg-background/80 backdrop-blur text-xs px-2 py-0.5 rounded-full font-medium z-10 border border-border">
                     {photo.processing_status}
                   </div>

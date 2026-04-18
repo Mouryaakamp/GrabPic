@@ -1,15 +1,25 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/Button';
-import { Camera, Moon, Sun, Menu, X, BookDashed } from 'lucide-react';
-import { useState } from 'react';
+import { Camera, Moon, Sun, Menu, X, User, LogOut } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import OrganizerDashboard from '@/pages/OrganizerDashboard';
 
 export function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.profile-dropdown-btn')) setIsProfileOpen(false);
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const baseLinks = [
     { name: 'Home', path: '/' },
@@ -58,9 +68,39 @@ export function Navbar() {
           </button>
 
           <div className="hidden md:block">
-            {!isLogin && <Link to="/login">
-              <Button variant="primary" size="sm">Login</Button>
-            </Link>}
+            {!isLogin ? (
+              <Link to="/login">
+                <Button variant="primary" size="sm">Login</Button>
+              </Link>
+            ) : (
+              <div className="relative">
+                <Button 
+                  variant="secondary" 
+                  size="icon" 
+                  onClick={(e) => { e.stopPropagation(); setIsProfileOpen(!isProfileOpen); }} 
+                  className="rounded-full bg-accent hover:bg-muted profile-dropdown-btn"
+                >
+                  <User className="w-5 h-5 text-foreground" />
+                </Button>
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-background border border-border rounded-xl shadow-xl z-50 overflow-hidden text-sm animate-in fade-in zoom-in-95">
+                    <div className="px-4 py-3 border-b border-border/50 text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+                      My Account
+                    </div>
+                    <button 
+                      onClick={() => {
+                        localStorage.removeItem('token');
+                        navigate('/');
+                        window.location.reload();
+                      }} 
+                      className="w-full flex items-center px-4 py-3 text-red-500 hover:bg-red-500/10 text-left font-medium transition-colors"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" /> Log Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -88,10 +128,24 @@ export function Navbar() {
                 {link.name}
               </Link>
             ))}
-            <div className="pt-4 border-t border-border">
-              <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button className="w-full" variant="primary">Login</Button>
-              </Link>
+            <div className="pt-4 border-t border-border space-y-2">
+              {!isLogin ? (
+                <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button className="w-full" variant="primary">Login</Button>
+                </Link>
+              ) : (
+                <Button 
+                  className="w-full bg-red-500/10 text-red-500 hover:bg-red-500/20" 
+                  variant="ghost"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    navigate('/');
+                    window.location.reload();
+                  }}
+                >
+                  <LogOut className="w-4 h-4 mr-2" /> Log Out
+                </Button>
+              )}
             </div>
           </div>
         </div>

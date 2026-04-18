@@ -1,20 +1,77 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import gsap from 'gsap';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card';
-import { Plus, Image as ImageIcon, Users, Copy, Check, X } from 'lucide-react';
+import { Plus, Image as ImageIcon, Users, Copy, Check, X, MoreVertical, Edit, Trash } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
+function AnimatedCounter({ value }) {
+  const counterRef = useRef(null);
+
+  useEffect(() => {
+    let ctx = gsap.context(() => {
+      const obj = { val: 0 };
+      gsap.to(obj, {
+        val: value,
+        duration: 1.5,
+        ease: 'power3.out',
+        onUpdate: () => {
+          if (counterRef.current) {
+            counterRef.current.innerText = Math.floor(obj.val).toLocaleString();
+          }
+        }
+      });
+    });
+    return () => ctx.revert();
+  }, [value]);
+
+  return <span ref={counterRef} className="text-xl font-semibold tracking-tight">0</span>;
+}
+
 export default function OrganizerDashboard() {
+  const navigate = useNavigate();
   const [copiedCode, setCopiedCode] = useState(null);
   const [events, setEvents] = useState([]);
 
-  // Modal state
   const [showModal, setShowModal] = useState(false);
   const [newEventName, setNewEventName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  
+  const cardsRef = useRef([]);
+
+  useEffect(() => {
+    if (events.length > 0) {
+      let ctx = gsap.context(() => {
+        gsap.fromTo(
+          cardsRef.current.filter(Boolean),
+          { y: 50, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.8, stagger: 0.1, ease: 'back.out(1.2)' }
+        );
+      });
+      return () => ctx.revert();
+    }
+  }, [events]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.dropdown-container')) setActiveDropdown(null);
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  const handleDeleteEvent = async (e, id) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.confirm("Are you sure you want to delete this event?")) {
+      setEvents(events.filter(ev => ev.id !== id));
+    }
+    setActiveDropdown(null);
+  };
 
   const copyToClipboard = (code) => {
     navigator.clipboard.writeText(code);
@@ -51,12 +108,28 @@ export default function OrganizerDashboard() {
         }
 
         // Map the backend array to the format our UI expects
-        const fetchedEvents = (data.data?.events || data.events || []).map(ev => ({
-          id: ev.id,
-          name: ev.name,
-          code: ev.join_code,
-          date: new Date(ev.created_at).toLocaleDateString(),
-          photos: 0 // Mocking photos count until an endpoint provides it
+        const eventsData = data.data?.events || data.events || [];
+        const fetchedEvents = await Promise.all(eventsData.map(async ev => {
+          let photoCount = 0;
+          try {
+            const pRes = await fetch(`${baseUrl}/events/${ev.id}/photos`, {
+              headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            const pData = await pRes.json();
+            if (pRes.ok && pData.data?.photos) {
+              photoCount = pData.data.photos.length;
+            }
+          } catch (e) {
+            console.error("Failed to fetch photos count", e);
+          }
+
+          return {
+            id: ev.id,
+            name: ev.name,
+            code: ev.join_code,
+            date: new Date(ev.created_at).toLocaleDateString(),
+            photos: photoCount
+          };
         }));
 
         setEvents(fetchedEvents);
@@ -117,11 +190,10 @@ export default function OrganizerDashboard() {
     }
   }
 
-  // 1. Move this to the very top of your file
+  // Reset refs before rendering
+  cardsRef.current = [];
 
-
-
-return (
+  return (
   <div className="container mx-auto px-4 py-8 animate-fade-in relative">
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
       <div>
@@ -135,16 +207,46 @@ return (
     </div>
 
     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {events.map((data) => (
-        <Card key={data.id} glass className="group hover:border-primary/50 transition-colors">
-            <Link to={`/event/${data.id}/manage`}>
-              <CardHeader className="pb-4 cursor-pointer hover:bg-muted/50 transition-colors rounded-t-xl">
-                <CardTitle className="flex justify-between items-center text-xl">
-                  {data.name}
-                </CardTitle>
+      {events.map((data, index) => (
+        <div key={data.id} ref={(el) => (cardsRef.current[index] = el)}>
+          <Card glass className="group hover:border-primary/50 transition-colors h-full flex flex-col">
+          <div
+            onClick={() => navigate(`/event/${data.id}/manage`)}
+            className="pb-4 p-6 cursor-pointer hover:bg-muted/50 transition-colors rounded-t-xl"
+          >
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="text-xl">{data.name}</CardTitle>
                 <div className="text-sm text-muted-foreground mt-1">{data.date}</div>
-              </CardHeader>
-            </Link>
+              </div>
+              <div className="dropdown-container relative">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveDropdown(activeDropdown === data.id ? null : data.id); }} 
+                  className="h-8 w-8 z-10 text-muted-foreground hover:text-foreground"
+                >
+                  <MoreVertical className="h-5 w-5" />
+                </Button>
+                {activeDropdown === data.id && (
+                  <div className="absolute top-10 -right-2 w-28 bg-background border border-border rounded-md shadow-xl z-50 overflow-hidden text-xs font-medium animate-in fade-in zoom-in-95">
+                    <div 
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/event/${data.id}/manage`); }} 
+                      className="flex items-center px-3 py-2.5 hover:bg-muted cursor-pointer transition-colors"
+                    >
+                       <Edit className="w-4 h-4 mr-2" /> Edit
+                    </div>
+                    <div 
+                      onClick={(e) => handleDeleteEvent(e, data.id)} 
+                      className="flex items-center px-3 py-2.5 text-red-500 hover:bg-red-500/10 cursor-pointer font-medium transition-colors"
+                    >
+                       <Trash className="w-4 h-4 mr-2" /> Delete
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
           <CardContent className="pt-6 space-y-4">
             <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
               <div>
@@ -167,7 +269,7 @@ return (
                   <ImageIcon className="h-4 w-4 mr-1.5" />
                   Photos
                 </div>
-                <span className="text-xl font-semibold">{data.photos?.toLocaleString()}</span>
+                <AnimatedCounter value={data.photos || 0} />
               </div>
               <Link to={`/event/${data.id}/manage`} className="h-full">
                 <Button variant="outline" className="h-full w-full bg-background/50 border-border/50 hover:border-primary">
@@ -176,7 +278,8 @@ return (
               </Link>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
       ))}
     </div>
 

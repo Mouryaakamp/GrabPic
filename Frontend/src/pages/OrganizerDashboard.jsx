@@ -104,6 +104,10 @@ export default function OrganizerDashboard() {
 
         if (!response.ok) {
           console.error('Auth failed:', data);
+          if (response.status === 401 || response.status === 403) {
+            localStorage.removeItem('token');
+            navigate('/');
+          }
           return;
         }
 

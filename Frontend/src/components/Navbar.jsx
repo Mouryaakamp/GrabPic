@@ -6,12 +6,27 @@ import { Camera, Moon, Sun, Menu, X, User, LogOut } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import OrganizerDashboard from '@/pages/OrganizerDashboard';
 
+const checkIsValid = () => {
+  const token = localStorage.getItem('token');
+  if (!token) return false;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (payload.exp && payload.exp * 1000 < Date.now()) return false;
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
 export function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isLogin, setIsLogin] = useState(() => checkIsValid());
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -21,12 +36,19 @@ export function Navbar() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const valid = checkIsValid();
+    setIsLogin(valid);
+    if (!valid && localStorage.getItem('token')) {
+      localStorage.removeItem('token');
+    }
+  }, [location.pathname]);
+
   const baseLinks = [
     { name: 'Home', path: '/' },
     { name: 'Join Event', path: '/join' },
   ];
-  const token = localStorage.getItem('token');
-  const isLogin = !!token;
+  
   const navLinks = isLogin ?
     [...baseLinks, { name: "Organizer Dashboard", path: '/dashboard' }] :
     baseLinks

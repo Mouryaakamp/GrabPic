@@ -4,7 +4,7 @@ import { Camera, Search, Shield, Zap } from 'lucide-react';
 
 export default function Landing() {
 const token=localStorage.getItem('token');
-  const isLogin=!!token
+const isLogin=!!token
 
 
 

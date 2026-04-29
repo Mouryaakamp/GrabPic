@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { Navbar } from '@/components/Navbar';
+import { useEffect } from 'react';
 
 import Landing from '@/pages/Landing';
 import Auth from '@/pages/Auth';
@@ -11,6 +12,25 @@ import Gallery from '@/pages/Gallery';
 import EventDetails from '@/pages/EventDetails';
 
 function App() {
+  useEffect(() => {
+    const checkIsValid = () => {
+      const token = localStorage.getItem('token');
+      if (!token) return false;
+      try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return false;
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        if (payload.exp && payload.exp * 1000 < Date.now()) return false;
+        return true;
+      } catch (e) {
+        return false;
+      }
+    };
+
+    if (localStorage.getItem('token') && !checkIsValid()) {
+      localStorage.removeItem('token');
+    }
+  }, []);
   return (
     <ThemeProvider>
       <Router>

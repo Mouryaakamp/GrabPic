@@ -151,6 +151,26 @@ functions:
       - httpApi:
           path: /events/{eventId}/search
           method: post
+          
+  photosDeleteBulk:
+    handler: src/handlers/photos/deleteBulk.handler
+    events:
+      - httpApi:
+          path: /events/{eventId}/photos
+          method: delete
+
+  photosDelete:
+    handler: src/handlers/photos/delete.handler
+    events:
+      - httpApi:
+          path: /events/{eventId}/photos/{photoId}
+          method: delete
+  eventsDelete:
+    handler: src/handlers/events/delete.handler
+    events:
+      - httpApi:
+          path: /events/{eventId}
+          method: delete
 
 plugins:
   - serverless-offline

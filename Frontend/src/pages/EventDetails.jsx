@@ -115,6 +115,45 @@ export default function EventDetails() {
     }
   };
 
+  const handleDeleteAllPhotos = async () => {
+    if (!window.confirm("Are you sure you want to delete ALL photos for this event? This action cannot be undone.")) return;
+    try {
+      const res = await fetch(`${baseUrl}/events/${id}/photos`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setPhotos([]);
+        alert("All photos deleted successfully");
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Failed to delete photos');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error while deleting photos');
+    }
+  };
+
+  const handleDeletePhoto = async (photoId) => {
+    if (!window.confirm("Are you sure you want to delete this photo?")) return;
+    try {
+      const res = await fetch(`${baseUrl}/events/${id}/photos/${photoId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setPhotos(photos.filter(p => p.id !== photoId));
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Failed to delete photo');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error while deleting photo');
+    }
+  };
+
   const handleFileChange = async (e) => {
     if (!e.target.files || e.target.files.length === 0) return;
 
@@ -292,9 +331,16 @@ export default function EventDetails() {
               <ImageIcon className="w-5 h-5 mr-2 text-muted-foreground" />
               Uploaded Photos ({photos.length})
             </h2>
-            <Button variant="ghost" size="sm" onClick={fetchEventData}>
-              <RefreshCw className="w-4 h-4 mr-2" /> Refresh
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={fetchEventData}>
+                <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+              </Button>
+              {/* {photos.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={handleDeleteAllPhotos} className="bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-600">
+                  <Trash className="w-4 h-4 mr-2" /> Delete All
+                </Button>
+              )} */}
+            </div>
           </div>
 
           {photos.length === 0 ? (
@@ -308,9 +354,16 @@ export default function EventDetails() {
               {photos.map(photo => (
                 <div key={photo.id} className="relative aspect-square rounded-xl overflow-hidden bg-muted group border border-border">
                   <EventPhoto photo={photo} eventId={id} token={token} />
-                  <div className="absolute top-2 right-2 bg-background/80 backdrop-blur text-xs px-2 py-0.5 rounded-full font-medium z-10 border border-border">
+                  <div className="absolute top-2 left-2 bg-background/80 backdrop-blur text-xs px-2 py-0.5 rounded-full font-medium z-10 border border-border">
                     {photo.processing_status}
                   </div>
+                  <button
+                    onClick={() => handleDeletePhoto(photo.id)}
+                    className="absolute top-2 right-2 bg-red-500/80 backdrop-blur text-white p-1.5 rounded-full hover:bg-red-600 transition-colors z-10 opacity-0 group-hover:opacity-100"
+                    title="Delete Photo"
+                  >
+                    <Trash className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               ))}
             </div>

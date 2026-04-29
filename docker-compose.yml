@@ -1,11 +1,11 @@
 version: "3.9"
 
 services:
-  redis:
-    image: redis:7
-    container_name: redis
-    ports:
-      - "6379:6379"
+#   redis:
+#     image: redis:7
+#     container_name: redis
+#     ports:
+#       - "6379:6379"
 
   ml-service:
     build:
@@ -18,9 +18,8 @@ services:
     build: ./miniProject_backend-main
     depends_on:
       - ml-service
-      - redis
     env_file:
       - ./miniProject_backend-main/.env
     environment:
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=rediss://default:gQAAAAAAAaxcAAIgcDJlZTUzMGM0NDFjZDc0OGU0YjEzYmNmY2Y1M2MxY2RmZQ@trusting-bluejay-109660.upstash.io:6379
       - ML_EMBEDDING_URL=http://ml-service:8000

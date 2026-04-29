@@ -68,7 +68,22 @@ export default function OrganizerDashboard() {
     e.preventDefault();
     e.stopPropagation();
     if (window.confirm("Are you sure you want to delete this event?")) {
-      setEvents(events.filter(ev => ev.id !== id));
+      try {
+        const accessToken = localStorage.getItem("token");
+        const response = await fetch(`${baseUrl}/events/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (response.ok) {
+          setEvents(events.filter(ev => ev.id !== id));
+        } else {
+          const data = await response.json();
+          alert(data.message || 'Failed to delete event');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Network error while deleting event');
+      }
     }
     setActiveDropdown(null);
   };

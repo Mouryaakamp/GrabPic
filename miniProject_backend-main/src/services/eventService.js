@@ -126,11 +126,21 @@ async function addMember(eventId, userId) {
   return rows.length > 0;
 }
 
+async function deleteEvent(eventId, organizerId) {
+  const pool = getPool();
+  const { rowCount } = await pool.query(
+    `DELETE FROM events WHERE id=$1 AND organizer_id=$2`,
+    [eventId, organizerId]
+  );
+  return rowCount > 0;
+}
+
 module.exports = {
   createEvent,
   listEventsByOrganizer,
   getEventById,
   updateEvent,
   findEventByJoinCode,
-  addMember
+  addMember,
+  deleteEvent
 };

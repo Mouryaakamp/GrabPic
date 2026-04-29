@@ -223,10 +223,39 @@ async function joinEvent({ join_code, currentUser }) {
   }
 }
 
+async function deleteEvent({ eventId, organizerId }) {
+  if (!eventId || !organizerId) {
+    return validationError([
+      { field: 'eventId/organizerId', message: 'required' }
+    ]);
+  }
+
+  try {
+    const deleted = await eventService.deleteEvent(eventId, organizerId);
+    if (!deleted) {
+      return error({
+        statusCode: HTTP_STATUS.NOT_FOUND,
+        message: 'Event not found'
+      });
+    }
+
+    return success({
+      message: 'Event deleted successfully'
+    });
+  } catch (err) {
+    return error({
+      statusCode: 500,
+      message: 'Failed to delete event',
+      error: err
+    });
+  }
+}
+
 module.exports = {
   createEvent,
   listEvents,
   getEvent,
   updateEvent,
-  joinEvent
+  joinEvent,
+  deleteEvent
 };

@@ -8,9 +8,13 @@ import { ArrowLeft, UploadCloud, RefreshCw, Save, ImageIcon, Trash } from 'lucid
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
 function EventPhoto({ photo, eventId, token }) {
-  const [src, setSrc] = useState(null);
+  const [src, setSrc] = useState(photo.url || null);
 
   useEffect(() => {
+    if (photo.url) {
+      setSrc(photo.url);
+      return;
+    }
     fetch(`${baseUrl}/events/${eventId}/photos/${photo.id}/download`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -19,7 +23,7 @@ function EventPhoto({ photo, eventId, token }) {
       if (data.data?.url) setSrc(data.data.url);
     })
     .catch(console.error);
-  }, [eventId, photo.id, token]);
+  }, [eventId, photo.id, token, photo.url]);
 
   if (!src) {
     return (

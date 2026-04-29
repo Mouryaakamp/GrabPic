@@ -102,11 +102,33 @@ async function getPresignedDownloadUrl(storageKey) {
   return s3Util.getPresignedDownloadUrl(storageKey);
 }
 
+/* DELETE */
+
+async function deletePhoto(eventId, photoId) {
+  const pool = getPool();
+  const { rowCount } = await pool.query(
+    `DELETE FROM photos WHERE id=$1 AND event_id=$2`,
+    [photoId, eventId]
+  );
+  return rowCount > 0;
+}
+
+async function deletePhotosByEvent(eventId) {
+  const pool = getPool();
+  const { rowCount } = await pool.query(
+    `DELETE FROM photos WHERE event_id=$1`,
+    [eventId]
+  );
+  return rowCount;
+}
+
 module.exports = {
   createPresignedPut,
   createPhotoRecord,
   confirmPhotoUpload,
   getPhotoById,
   listPhotosByEvent,
-  getPresignedDownloadUrl
+  getPresignedDownloadUrl,
+  deletePhoto,
+  deletePhotosByEvent
 };

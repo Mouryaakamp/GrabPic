@@ -113,13 +113,24 @@ async function listPhotos({ eventId }) {
 
   try {
 
-    const photos =
-      await photoService.listPhotosByEvent(eventId);
+    const photos = await photoService.listPhotosByEvent(eventId);
+
+    const photosWithUrls = await Promise.all(photos.map(async (photo) => {
+      try {
+        const presigned = await photoService.getPresignedDownloadUrl(photo.storage_key);
+        return {
+          ...photo,
+          url: presigned.url
+        };
+      } catch (err) {
+        return photo;
+      }
+    }));
 
     return success({
       statusCode: HTTP_STATUS.OK,
       message: 'Photos fetched',
-      data: { photos }
+      data: { photos: photosWithUrls }
     });
 
   } catch (err) {
@@ -179,9 +190,60 @@ async function getDownloadUrl({ eventId, photoId }) {
   }
 }
 
+/* DELETE BULK */
+async function deleteBulkPhotos({ eventId }) {
+  if (!eventId) {
+    return validationError([{ field: 'eventId', message: 'required' }]);
+  }
+
+  try {
+    const deletedCount = await photoService.deletePhotosByEvent(eventId);
+    return success({
+      statusCode: HTTP_STATUS.OK,
+      message: 'All photos deleted',
+      data: { deletedCount }
+    });
+  } catch (err) {
+    return error({
+      statusCode: 500,
+      message: 'Failed to delete photos',
+      error: err
+    });
+  }
+}
+
+/* DELETE SINGLE */
+async function deletePhoto({ eventId, photoId }) {
+  if (!eventId || !photoId) {
+    return validationError([{ field: 'eventId/photoId', message: 'required' }]);
+  }
+
+  try {
+    const deleted = await photoService.deletePhoto(eventId, photoId);
+    if (!deleted) {
+      return error({
+        statusCode: HTTP_STATUS.NOT_FOUND,
+        message: 'Photo not found'
+      });
+    }
+    return success({
+      statusCode: HTTP_STATUS.OK,
+      message: 'Photo deleted'
+    });
+  } catch (err) {
+    return error({
+      statusCode: 500,
+      message: 'Failed to delete photo',
+      error: err
+    });
+  }
+}
+
 module.exports = {
   getPresignUrl,
   confirmUpload,
   listPhotos,
-  getDownloadUrl
+  getDownloadUrl,
+  deleteBulkPhotos,
+  deletePhoto
 };
